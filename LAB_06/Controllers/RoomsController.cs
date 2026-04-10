@@ -32,8 +32,8 @@ public class RoomsController : ControllerBase
 
         return Ok(query.ToList());
     }
-    
-    
+
+
     [HttpGet("{id:int}")]
     public IActionResult GetById(int id)
     {
@@ -54,7 +54,7 @@ public class RoomsController : ControllerBase
     public IActionResult Post([FromBody] CreateRoomDto roomDto)
     {
         var newId = Rooms.Any() ? Rooms.Max(r => r.Id) + 1 : 1;
-        
+
         var roomModel = new Room
         {
             Id = newId,
@@ -67,7 +67,7 @@ public class RoomsController : ControllerBase
         };
 
         Rooms.Add(roomModel);
-        return CreatedAtAction(nameof(GetById), new { id = roomModel.Id }, roomModel);
+        return Ok(roomModel);
     }
 
     [HttpPut("{id:int}")]
@@ -75,7 +75,7 @@ public class RoomsController : ControllerBase
     {
         var existingRoom = Rooms.FirstOrDefault(r => r.Id == id);
         if (existingRoom == null) return NotFound();
-        
+
         existingRoom.Name = roomDto.Name;
         existingRoom.Capacity = roomDto.Capacity;
         existingRoom.Floor = roomDto.Floor;
@@ -89,9 +89,9 @@ public class RoomsController : ControllerBase
     [HttpDelete("{id:int}")]
     public IActionResult Delete(int id)
     {
-        var room = Rooms.FirstOrDefault( room => room.Id == id );
+        var room = Rooms.FirstOrDefault(room => room.Id == id);
         if (room == null) return NotFound();
-        
+
         Rooms.Remove(room);
         return NoContent();
     }

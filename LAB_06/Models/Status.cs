@@ -2,5 +2,8 @@
 
 public enum Status
 {
-    PLANNED,CONFIRMED,CANCELLED,ARCHIVED
+    PLANNED,
+    CONFIRMED,
+    CANCELLED,
+    ARCHIVED
 }

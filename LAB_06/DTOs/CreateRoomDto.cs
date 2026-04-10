@@ -11,5 +11,4 @@ public class CreateRoomDto
     public bool HasProjector { get; set; }
     public bool IsActive { get; set; }
     public string BuildingCode { get; set; }
-    
 }
