@@ -68,6 +68,7 @@ public class ReservationsController : ControllerBase
         }
     };
 
+    [HttpGet]
     public IActionResult Get([FromQuery] DateTime? date, [FromQuery] Status? status, [FromQuery] int? roomId)
     {
         var query = Reservations.AsEnumerable();
@@ -87,13 +88,31 @@ public class ReservationsController : ControllerBase
     [HttpGet("{id:int}")]
     public IActionResult GetById(int id)
     {
-        return Ok(Reservations.FirstOrDefault(r => r.Id == id));
+        var reservation = Reservations.FirstOrDefault(r => r.Id == id);
+        if (reservation == null) return NotFound();
+        return Ok(reservation);
     }
 
     [HttpPost]
     public IActionResult Post([FromBody] CreateReservationDto reservationDto)
     {
-        var newID = Reservations.Count + 1;
+        var newID = Reservations.Any() ? Reservations.Max(r => r.Id) + 1 : 1;
+        var Rooms = RoomsController.Rooms;
+        var existingRoom =  Rooms.FirstOrDefault(r => r.Id == reservationDto.RoomId);
+        
+        if (existingRoom == null) return NotFound();
+        
+        if (!existingRoom.IsActive) return BadRequest("Nie można zarezerwować nieaktywnego pokoju");
+
+        bool hasConflict = Reservations.Any(r =>
+            r.RoomId == reservationDto.RoomId &&
+            r.Date.Date == reservationDto.Date.Date &&
+            r.StartTime < reservationDto.EndTime &&
+            r.EndTime > reservationDto.StartTime &&
+            r.Status != Status.CANCELLED
+        );
+
+        if (hasConflict) return Conflict("Sala jest już zajęta w tym terminie.");
 
         var reservationModel = new Reservation
         {
@@ -104,11 +123,13 @@ public class ReservationsController : ControllerBase
             Topic = reservationDto.Topic,
             StartTime = reservationDto.StartTime,
             EndTime = reservationDto.EndTime,
-            Status = reservationDto.Status
+            Status = Status.PLANNED
         };
         
         Reservations.Add(reservationModel);
-        return Ok(reservationModel);
+        return CreatedAtAction(nameof(GetById), new { id = reservationModel.Id }, reservationModel);
+
+
     }
 
     [HttpPut("{id:int}")]
@@ -125,6 +146,8 @@ public class ReservationsController : ControllerBase
         existingReservation.StartTime = reservationDto.StartTime;
         existingReservation.EndTime = reservationDto.EndTime;
         existingReservation.Status = reservationDto.Status;
+        
+        
         return NoContent();
     }
 
@@ -134,6 +157,12 @@ public class ReservationsController : ControllerBase
         var reservation = Reservations.FirstOrDefault(r => r.Id == id);
         
         if (reservation == null) return NotFound();
+        
+        var hasFutureReservations = ReservationsController.Reservations.Any(r => r.RoomId == id && r.Date >= DateTime.Now.Date);
+        if (hasFutureReservations)
+        {
+            return Conflict("Nie można usunąć sali, ponieważ ma przypisane przyszłe rezerwacje.");
+        }
         Reservations.Remove(reservation);
         return NoContent();
     }
